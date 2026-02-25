@@ -2,17 +2,20 @@
  * context/AppContext.js
  *
  * Provides:
- *   user    — { name, email, role } | null
- *   env     — 'DEV' | 'UAT' | 'PROD'
- *   isAuth  — boolean
- *   login(user) — store session
- *   logout()    — clear session
- *   setEnv(env) — change active environment
+ *   user         — { name, email, role } | null
+ *   env          — 'DEV' | 'UAT' | 'PROD'
+ *   theme        — 'dark' | 'light'
+ *   isAuth       — boolean
+ *   login(user)  — store session
+ *   logout()     — clear session
+ *   setEnv(env)  — change active environment
+ *   toggleTheme()— switch dark ↔ light
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const SESSION_KEY = 'recsignal_session';
+const THEME_KEY   = 'recsignal_theme';
 
 const AppContext = createContext(null);
 
@@ -20,8 +23,17 @@ export function AppProvider({ children }) {
   const [user,   setUser]     = useState(null);
   const [env,    setEnvState] = useState('PROD');
   const [isAuth, setIsAuth]   = useState(false);
+  const [theme,  setThemeState] = useState(() => {
+    return localStorage.getItem(THEME_KEY) || 'dark';
+  });
 
-  // ── Rehydrate from localStorage on first mount ──
+  // Apply theme attribute to <html> whenever it changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
+  // ── Rehydrate session from localStorage on first mount ──
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -60,8 +72,12 @@ export function AppProvider({ children }) {
     } catch { /* ignore */ }
   }, []);
 
+  const toggleTheme = useCallback(() => {
+    setThemeState(t => t === 'dark' ? 'light' : 'dark');
+  }, []);
+
   return (
-    <AppContext.Provider value={{ user, env, isAuth, login, logout, setEnv }}>
+    <AppContext.Provider value={{ user, env, theme, isAuth, login, logout, setEnv, toggleTheme }}>
       {children}
     </AppContext.Provider>
   );

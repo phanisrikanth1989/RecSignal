@@ -27,7 +27,7 @@ const ENVS = ['DEV', 'UAT', 'PROD'];
 
 // ── Protected shell ──────────────────────────────────────────────────────────
 function AppShell() {
-  const { user, env, isAuth, logout, setEnv } = useApp();
+  const { user, env, theme, isAuth, logout, setEnv, toggleTheme } = useApp();
 
   if (!isAuth) return <Login />;
 
@@ -62,6 +62,15 @@ function AppShell() {
           </select>
           <span className="select-chevron">▾</span>
         </div>
+
+        {/* ── Theme toggle ── */}
+        <button
+          className="header-theme-btn"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
 
         {/* ── User info + logout ── */}
         <div className="header-user">
