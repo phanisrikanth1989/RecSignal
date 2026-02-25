@@ -2,8 +2,9 @@
  * pages/Dashboard.js — Main monitoring dashboard.
  *
  * Shows:
- *  - Stat summary (total servers, active/critical/warning alerts)
- *  - Server list filtered by environment
+ *  - Stat summary cards
+ *  - Unix Servers tab  (filtered by header env)
+ *  - Oracle Databases tab  (filtered by header env)
  *  - Metrics trend chart for a selected server
  *  - Recent open alerts
  */
@@ -16,22 +17,25 @@ import AlertList from '../components/AlertList';
 import MetricsChart from '../components/MetricsChart';
 import ServerCard from '../components/ServerCard';
 
-const ENVIRONMENTS = ['DEV', 'UAT', 'PROD'];
-const REFRESH_INTERVAL = 60_000; // 60 s
+const TABS = [
+  { key: 'UNIX',   label: '🖥️ Unix Servers'      },
+  { key: 'ORACLE', label: '🗄️ Oracle Databases'  },
+];
+const REFRESH_INTERVAL = 60_000;
 
 export default function Dashboard() {
-  const { env: globalEnv } = useApp();
+  const { env } = useApp();
 
-  const [stats, setStats]         = useState(null);
-  const [servers, setServers]     = useState([]);
-  const [metrics, setMetrics]     = useState([]);
-  const [envFilter, setEnvFilter] = useState(globalEnv);
+  const [stats, setStats]             = useState(null);
+  const [servers, setServers]         = useState([]);
+  const [metrics, setMetrics]         = useState([]);
+  const [activeTab, setActiveTab]     = useState('UNIX');
   const [selectedSrv, setSelectedSrv] = useState(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
 
-  // Keep local filter in sync when the header env switcher changes
-  useEffect(() => { setEnvFilter(globalEnv); }, [globalEnv]);
+  // Reset selected server when env or tab changes
+  useEffect(() => { setSelectedSrv(null); }, [env, activeTab]);
 
   // ── Data fetching ──────────────────────────────────────────────────────
   const fetchDashboard = useCallback(async () => {
@@ -72,7 +76,10 @@ export default function Dashboard() {
   }, [selectedSrv, fetchMetrics]);
 
   // ── Derived data ───────────────────────────────────────────────────────
-  const filteredServers = servers.filter((s) => s.environment === envFilter);
+  // Servers for the active tab, filtered by the header env
+  const visibleServers = servers.filter(
+    (s) => s.environment === env && s.type === activeTab
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return <div className="spinner">Loading dashboard…</div>;
@@ -84,39 +91,41 @@ export default function Dashboard() {
       <div className="page-header flex-between">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">Real-time server &amp; database health</p>
+          <p className="page-sub">Environment: <strong>{env}</strong></p>
         </div>
         <button className="btn btn-ghost" onClick={fetchDashboard}>↻ Refresh</button>
       </div>
 
       {/* Summary stats */}
       <div className="grid-4 mb-16">
-        <StatCard label="Total Servers"   value={stats?.total_servers ?? 0} />
-        <StatCard label="Active Alerts"   value={stats?.active_alerts ?? 0} color="var(--color-warning)" />
-        <StatCard label="Critical"         value={stats?.critical_alerts ?? 0} color="var(--color-critical)" />
-        <StatCard label="Warning"          value={stats?.warning_alerts ?? 0} color="var(--color-warning)" />
+        <StatCard label="Total Servers"  value={stats?.total_servers ?? 0} />
+        <StatCard label="Active Alerts"  value={stats?.active_alerts ?? 0}  color="var(--color-warning)" />
+        <StatCard label="Critical"       value={stats?.critical_alerts ?? 0} color="var(--color-critical)" />
+        <StatCard label="Warning"        value={stats?.warning_alerts ?? 0}  color="var(--color-warning)" />
       </div>
 
-      {/* Environment filter */}
-      <div className="flex gap-8 mb-16">
-        {ENVIRONMENTS.map((env) => (
+      {/* Unix / Oracle tabs */}
+      <div className="tab-bar mb-16">
+        {TABS.map((t) => (
           <button
-            key={env}
-            className={`btn ${envFilter === env ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setEnvFilter(env)}
+            key={t.key}
+            className={`tab ${activeTab === t.key ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab(t.key)}
           >
-            {env}
+            {t.label}
+            <span className="tab-count">
+              {servers.filter(s => s.environment === env && s.type === t.key).length}
+            </span>
           </button>
         ))}
       </div>
 
       {/* Server grid */}
-      <div className="section-title">Servers ({filteredServers.length})</div>
-      {filteredServers.length === 0 ? (
-        <p className="text-muted">No servers found for this filter.</p>
+      {visibleServers.length === 0 ? (
+        <p className="text-muted mb-16">No {activeTab === 'UNIX' ? 'Unix servers' : 'Oracle databases'} in {env}.</p>
       ) : (
         <div className="grid-3 mb-16">
-          {filteredServers.map((srv) => (
+          {visibleServers.map((srv) => (
             <ServerCard
               key={srv.id}
               server={srv}
@@ -127,7 +136,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Metrics chart (shown when a server is selected) */}
+      {/* Metrics chart */}
       {selectedSrv && (
         <div className="card mb-16">
           <div className="card-title">Metrics — {selectedSrv.hostname} (last 24 h)</div>

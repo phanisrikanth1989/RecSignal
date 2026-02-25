@@ -255,6 +255,49 @@ select:focus, input:focus { border-color: var(--color-primary); }
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
 }
 
+/* ── Unix / Oracle tabs ── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--color-text); }
+.tab-active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab-count {
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+.tab-active .tab-count {
+  background: rgba(99,102,241,0.25);
+  color: var(--color-primary);
+}
+
 /* ============================================================
    Login page
    ============================================================ */

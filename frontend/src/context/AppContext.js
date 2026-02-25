@@ -2,12 +2,12 @@
  * context/AppContext.js
  *
  * Provides:
- *   user       — { name, email, role } | null
- *   env        — 'DEV' | 'UAT' | 'PROD'
- *   isAuth     — boolean
- *   login(user, env) — store session
- *   logout()         — clear session
- *   setEnv(env)      — change active environment
+ *   user    — { name, email, role } | null
+ *   env     — 'DEV' | 'UAT' | 'PROD'
+ *   isAuth  — boolean
+ *   login(user) — store session
+ *   logout()    — clear session
+ *   setEnv(env) — change active environment
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -17,11 +17,11 @@ const SESSION_KEY = 'recsignal_session';
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [user,   setUser]   = useState(null);
+  const [user,   setUser]     = useState(null);
   const [env,    setEnvState] = useState('PROD');
-  const [isAuth, setIsAuth] = useState(false);
+  const [isAuth, setIsAuth]   = useState(false);
 
-  // ── Rehydrate from localStorage on first mount ────────────────────────────
+  // ── Rehydrate from localStorage on first mount ──
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -36,13 +36,12 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-  const login = useCallback((userObj, selectedEnv) => {
+  // ── Actions ──
+  const login = useCallback((userObj) => {
     setUser(userObj);
-    setEnvState(selectedEnv);
     setIsAuth(true);
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ user: userObj, env: selectedEnv }));
-  }, []);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ user: userObj, env }));
+  }, [env]);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -52,7 +51,6 @@ export function AppProvider({ children }) {
 
   const setEnv = useCallback((newEnv) => {
     setEnvState(newEnv);
-    // persist env change
     try {
       const raw = localStorage.getItem(SESSION_KEY);
       if (raw) {

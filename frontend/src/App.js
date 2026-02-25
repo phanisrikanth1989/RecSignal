@@ -49,7 +49,7 @@ function AppShell() {
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* ── Environment switcher ── */}
+        {/* ── Environment dropdown ── */}
         <div className="header-env-wrapper">
           <span className="header-env-dot" style={{ background: ENV_COLOR[env] }} />
           <select
@@ -60,6 +60,7 @@ function AppShell() {
           >
             {ENVS.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
+          <span className="select-chevron">▾</span>
         </div>
 
         {/* ── User info + logout ── */}
