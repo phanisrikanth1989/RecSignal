@@ -1,0 +1,32 @@
+# RecSignal Backend — Python dependencies
+# Python 3.14 compatible (uses unpinned/loosely-pinned versions for wheel availability)
+
+# ---- Web framework ----
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# ---- Oracle connectivity ----
+oracledb>=2.4.0
+
+# ---- Data validation (pydantic-core wheels available for Python 3.14 in v2.10+) ----
+pydantic>=2.10.0
+
+# ---- HTTP client ----
+httpx>=0.27.0
+requests>=2.32.0
+
+# ---- Async support ----
+anyio>=4.4.0
+
+# ---- Observability ----
+python-json-logger>=2.0.7
+
+# ---- Email notifications (optional advanced feature) ----
+# aiosmtplib>=3.0.1
+
+# ---- Teams / webhook notifications (optional) ----
+# pymsteams>=0.2.2
+
+# ---- Testing ----
+pytest>=8.2.0
+pytest-asyncio>=0.23.6

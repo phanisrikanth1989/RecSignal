@@ -1,0 +1,3 @@
+# Agent dependencies — install on each monitored server
+oracledb>=2.2.1
+requests>=2.32.0

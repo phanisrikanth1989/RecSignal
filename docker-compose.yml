@@ -1,0 +1,74 @@
+version: "3.9"
+
+# ===========================================================================
+# RecSignal — docker-compose.yml
+#
+# Services:
+#   oracle-db          : Oracle XE 21c (free tier)
+#   recsignal-backend  : FastAPI application
+#   recsignal-frontend : React (Nginx-served production build)
+#
+# Usage:
+#   docker-compose up -d --build
+#   docker-compose logs -f recsignal-backend
+# ===========================================================================
+
+services:
+
+  # ── Oracle Database (XE 21c) ─────────────────────────────────────────────
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: recsignal-oracle
+    environment:
+      ORACLE_PASSWORD: Oracle123
+      APP_USER: recsignal
+      APP_USER_PASSWORD: recsignal123
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM DUAL;' | sqlplus -S recsignal/recsignal123@//localhost:1521/XEPDB1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  recsignal-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: recsignal-backend
+    environment:
+      DB_USER: recsignal
+      DB_PASSWORD: recsignal123
+      DB_DSN: oracle-db:1521/XEPDB1
+      DB_POOL_MIN: "2"
+      DB_POOL_MAX: "10"
+    ports:
+      - "8000:8000"
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── Frontend (React → Nginx) ──────────────────────────────────────────────
+  recsignal-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: recsignal-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - recsignal-backend
+    restart: unless-stopped
+
+volumes:
+  oracle-data:
