@@ -11,21 +11,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getDashboard, getMetrics, getServers } from '../api/api';
+import { useApp } from '../context/AppContext';
 import AlertList from '../components/AlertList';
 import MetricsChart from '../components/MetricsChart';
 import ServerCard from '../components/ServerCard';
 
-const ENVIRONMENTS = ['ALL', 'DEV', 'UAT', 'PROD'];
+const ENVIRONMENTS = ['DEV', 'UAT', 'PROD'];
 const REFRESH_INTERVAL = 60_000; // 60 s
 
 export default function Dashboard() {
+  const { env: globalEnv } = useApp();
+
   const [stats, setStats]         = useState(null);
   const [servers, setServers]     = useState([]);
   const [metrics, setMetrics]     = useState([]);
-  const [envFilter, setEnvFilter] = useState('ALL');
+  const [envFilter, setEnvFilter] = useState(globalEnv);
   const [selectedSrv, setSelectedSrv] = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
+
+  // Keep local filter in sync when the header env switcher changes
+  useEffect(() => { setEnvFilter(globalEnv); }, [globalEnv]);
 
   // ── Data fetching ──────────────────────────────────────────────────────
   const fetchDashboard = useCallback(async () => {
@@ -66,9 +72,7 @@ export default function Dashboard() {
   }, [selectedSrv, fetchMetrics]);
 
   // ── Derived data ───────────────────────────────────────────────────────
-  const filteredServers = envFilter === 'ALL'
-    ? servers
-    : servers.filter((s) => s.environment === envFilter);
+  const filteredServers = servers.filter((s) => s.environment === envFilter);
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return <div className="spinner">Loading dashboard…</div>;
