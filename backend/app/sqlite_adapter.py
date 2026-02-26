@@ -64,10 +64,16 @@ SQLITE_DDL = [
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
         metric_type         TEXT    NOT NULL,
         environment         TEXT    NOT NULL,
+        hostname            TEXT    NOT NULL DEFAULT '',
+        path_label          TEXT    NOT NULL DEFAULT '',
         warning_threshold   REAL    NOT NULL,
         critical_threshold  REAL    NOT NULL,
-        UNIQUE(metric_type, environment)
+        UNIQUE(metric_type, environment, hostname, path_label)
     )""",
+    # ── Migration: add columns to existing dev databases (safe to re-run) ────────
+    # init_sqlite() catches sqlite3.Error so these silently no-op on new DBs.
+    "ALTER TABLE config ADD COLUMN hostname   TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE config ADD COLUMN path_label TEXT NOT NULL DEFAULT ''",
     # Seed default thresholds (INSERT OR IGNORE = no-op if already present)
     """INSERT OR IGNORE INTO config
         (metric_type, environment, warning_threshold, critical_threshold)

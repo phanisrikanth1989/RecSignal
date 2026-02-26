@@ -84,7 +84,7 @@ def ingest_metrics(
         stype=payload.server_type.value,
     )
 
-    engine = AlertEngine(cursor, server_id, payload.environment.value)
+    engine = AlertEngine(cursor, server_id, payload.environment.value, payload.hostname)
     alerts_generated = 0
     metrics_stored = 0
 

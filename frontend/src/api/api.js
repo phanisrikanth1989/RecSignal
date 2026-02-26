@@ -69,9 +69,13 @@ export const getAlertSummary = () => api.get('/alerts/summary/counts');
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-export const getConfigs = () => api.get('/config/');
-export const getConfig = (metricType, environment) =>
-  api.get(`/config/${metricType}/${environment}`);
+/** Fetch all threshold configs.  Pass { hostname: '' } to get only global defaults. */
+export const getConfigs = (params = {}) => api.get('/config/', { params });
+/** Fetch all overrides for a specific server hostname. */
+export const getServerConfigs = (hostname) => api.get('/config/', { params: { hostname } });
+export const getConfig = (metricType, environment, hostname = '', pathLabel = '') =>
+  api.get(`/config/${metricType}/${environment}`, { params: { hostname, path_label: pathLabel } });
 export const updateConfig = (data) => api.post('/config/update', data);
+export const deleteConfig = (configId) => api.delete(`/config/${configId}`);
 
 export default api;

@@ -43,13 +43,22 @@ print("Cleared existing server / metric / alert rows.")
 # ── SERVERS ───────────────────────────────────────────────────────────────────
 SERVERS = [
     # hostname,                env,    type
+    # ── DEV ──────────────────────────────────────────────────────────────────
     ("dev-unix-01.internal",   "DEV",  "UNIX"),
     ("dev-ora-01.internal",    "DEV",  "ORACLE"),
-    ("uat-unix-01.internal",   "UAT",  "UNIX"),
-    ("uat-unix-02.internal",   "UAT",  "UNIX"),
+    # ── UAT Unix ─────────────────────────────────────────────────────────────
+    ("sd-20d3-4317",           "UAT",  "UNIX"),
+    ("lswtlmap1u",             "UAT",  "UNIX"),
+    ("lswtlmap2u",             "UAT",  "UNIX"),
+    ("lswtlmap3u",             "UAT",  "UNIX"),
+    # ── UAT Oracle ───────────────────────────────────────────────────────────
     ("uat-ora-01.internal",    "UAT",  "ORACLE"),
-    ("prod-unix-01.internal",  "PROD", "UNIX"),
-    ("prod-unix-02.internal",  "PROD", "UNIX"),
+    # ── PROD Unix ────────────────────────────────────────────────────────────
+    ("lmwtlmap1p",             "PROD", "UNIX"),
+    ("lmwtlmap2p",             "PROD", "UNIX"),
+    ("lmwtlmap5p",             "PROD", "UNIX"),
+    ("lmwtlmap6p",             "PROD", "UNIX"),
+    # ── PROD Oracle ──────────────────────────────────────────────────────────
     ("prod-ora-01.internal",   "PROD", "ORACLE"),
     ("prod-ora-02.internal",   "PROD", "ORACLE"),
 ]
@@ -91,27 +100,40 @@ ORACLE_PROFILES = [
 # Specific overrides to ensure some servers breach thresholds
 OVERRIDES: dict[str, dict[tuple, float]] = {
     # server hostname  →  {(metric_type, label): final_value}
-    "prod-unix-01.internal": {
-        ("DISK_USAGE",  "/var"):     88.0,   # CRITICAL
-        ("MEMORY_USAGE","RAM"):      82.0,   # WARNING
+    # ── PROD Unix ──────────────────────────────────────────────────────────
+    "lmwtlmap1p": {
+        ("DISK_USAGE",   "/var"):    88.0,   # CRITICAL
+        ("MEMORY_USAGE", "RAM"):    82.0,   # WARNING
     },
-    "prod-unix-02.internal": {
-        ("CPU_LOAD",    "LOAD_1M"):  91.0,   # CRITICAL
-        ("DISK_USAGE",  "/"):        76.0,   # WARNING
+    "lmwtlmap2p": {
+        ("CPU_LOAD",     "LOAD_1M"): 91.0,   # CRITICAL
+        ("DISK_USAGE",   "/"):       76.0,   # WARNING
     },
+    "lmwtlmap6p": {
+        ("DISK_USAGE",   "/opt"):    77.0,   # WARNING
+    },
+    "lmwtlmap5p": {
+        ("MEMORY_USAGE", "RAM"):    84.0,   # WARNING
+    },
+    # ── PROD Oracle ────────────────────────────────────────────────────────
     "prod-ora-01.internal": {
-        ("TABLESPACE_USAGE", "USERS"):  93.0,  # CRITICAL
-        ("BLOCKING_SESSIONS", "TOTAL"): 14.0,  # WARNING
+        ("TABLESPACE_USAGE",    "USERS"): 93.0,  # CRITICAL
+        ("BLOCKING_SESSIONS",   "TOTAL"): 14.0,  # WARNING
     },
     "prod-ora-02.internal": {
-        ("TABLESPACE_USAGE", "USERS"):  81.0,  # WARNING
-        ("LONG_RUNNING_QUERIES","TOTAL"): 6.0, # WARNING
+        ("TABLESPACE_USAGE",       "USERS"): 81.0,  # WARNING
+        ("LONG_RUNNING_QUERIES",   "TOTAL"):  6.0, # WARNING
     },
-    "uat-unix-01.internal": {
-        ("DISK_USAGE",  "/opt"):     71.0,   # WARNING
+    # ── UAT Unix ───────────────────────────────────────────────────────────
+    "lswtlmap1u": {
+        ("DISK_USAGE",  "/opt"): 71.0,   # WARNING
     },
+    "sd-20d3-4317": {
+        ("DISK_USAGE",  "/var"): 72.0,   # WARNING
+    },
+    # ── UAT Oracle ─────────────────────────────────────────────────────────
     "uat-ora-01.internal": {
-        ("TABLESPACE_USAGE", "USERS"):  78.0,  # WARNING
+        ("TABLESPACE_USAGE", "USERS"): 78.0,  # WARNING
     },
 }
 
@@ -174,18 +196,21 @@ for row in cur.fetchall():
 
 # ── GENERATE ALERTS ───────────────────────────────────────────────────────────
 ALERT_SCENARIOS = [
-    # (hostname,                  metric,              label,    status,         ack_by)
-    ("prod-unix-01.internal",  "DISK_USAGE",          "/var",   "OPEN",         None),
-    ("prod-unix-01.internal",  "MEMORY_USAGE",        "RAM",    "ACKNOWLEDGED", "ops-team"),
-    ("prod-unix-02.internal",  "CPU_LOAD",            "LOAD_1M","OPEN",         None),
-    ("prod-unix-02.internal",  "DISK_USAGE",          "/",      "OPEN",         None),
-    ("prod-ora-01.internal",   "TABLESPACE_USAGE",   "USERS",   "OPEN",         None),
-    ("prod-ora-01.internal",   "BLOCKING_SESSIONS",  "TOTAL",   "ACKNOWLEDGED", "dba-oncall"),
-    ("prod-ora-02.internal",   "TABLESPACE_USAGE",   "USERS",   "OPEN",         None),
-    ("prod-ora-02.internal",   "LONG_RUNNING_QUERIES","TOTAL",  "OPEN",         None),
-    ("uat-unix-01.internal",   "DISK_USAGE",          "/opt",   "OPEN",         None),
-    ("uat-ora-01.internal",    "TABLESPACE_USAGE",   "USERS",   "RESOLVED",     None),
-    ("dev-unix-01.internal",   "CPU_LOAD",            "LOAD_1M","RESOLVED",     None),
+    # (hostname,                  metric,                  label,     status,         ack_by)
+    ("lmwtlmap1p",          "DISK_USAGE",          "/var",     "OPEN",         None),
+    ("lmwtlmap1p",          "MEMORY_USAGE",        "RAM",      "ACKNOWLEDGED", "ops-team"),
+    ("lmwtlmap2p",          "CPU_LOAD",            "LOAD_1M",  "OPEN",         None),
+    ("lmwtlmap2p",          "DISK_USAGE",          "/",        "OPEN",         None),
+    ("lmwtlmap6p",          "DISK_USAGE",          "/opt",     "OPEN",         None),
+    ("lmwtlmap5p",          "MEMORY_USAGE",        "RAM",      "OPEN",         None),
+    ("prod-ora-01.internal","TABLESPACE_USAGE",    "USERS",    "OPEN",         None),
+    ("prod-ora-01.internal","BLOCKING_SESSIONS",   "TOTAL",    "ACKNOWLEDGED", "dba-oncall"),
+    ("prod-ora-02.internal","TABLESPACE_USAGE",    "USERS",    "OPEN",         None),
+    ("prod-ora-02.internal","LONG_RUNNING_QUERIES", "TOTAL",   "OPEN",         None),
+    ("lswtlmap1u",          "DISK_USAGE",          "/opt",     "OPEN",         None),
+    ("sd-20d3-4317",        "DISK_USAGE",          "/var",     "OPEN",         None),
+    ("uat-ora-01.internal", "TABLESPACE_USAGE",    "USERS",    "RESOLVED",     None),
+    ("dev-unix-01.internal","CPU_LOAD",            "LOAD_1M",  "RESOLVED",     None),
 ]
 
 alert_count = 0
@@ -226,6 +251,64 @@ for hostname, metric, label, status, ack_by in ALERT_SCENARIOS:
 
 con.commit()
 print(f"\nInserted {alert_count} alerts.")
+
+# ── SERVER / PATH THRESHOLD OVERRIDES ─────────────────────────────────────────
+# Per-server and per-path thresholds.
+# Uses INSERT OR REPLACE so the script can be re-run safely.
+# Edit this list to add / change thresholds for specific servers and mount points.
+SERVER_PATH_THRESHOLDS = [
+    # (metric_type, environment, hostname, path_label, warn, crit)
+    #
+    # ── UAT: sd-20d3-4317 ───────────────────────────────────────────────────
+    ("DISK_USAGE", "UAT", "sd-20d3-4317", "/",    70, 85),
+    ("DISK_USAGE", "UAT", "sd-20d3-4317", "/opt", 75, 90),
+    ("DISK_USAGE", "UAT", "sd-20d3-4317", "/var", 65, 80),  # stricter for /var
+    # ── UAT: lswtlmap1u ─────────────────────────────────────────────────────
+    ("DISK_USAGE", "UAT", "lswtlmap1u", "/",    70, 85),
+    ("DISK_USAGE", "UAT", "lswtlmap1u", "/opt", 75, 90),
+    ("DISK_USAGE", "UAT", "lswtlmap1u", "/var", 70, 85),
+    # ── UAT: lswtlmap2u ─────────────────────────────────────────────────────
+    ("DISK_USAGE", "UAT", "lswtlmap2u", "/",    70, 85),
+    ("DISK_USAGE", "UAT", "lswtlmap2u", "/opt", 75, 90),
+    ("DISK_USAGE", "UAT", "lswtlmap2u", "/var", 70, 85),
+    # ── UAT: lswtlmap3u ─────────────────────────────────────────────────────
+    ("DISK_USAGE", "UAT", "lswtlmap3u", "/",    70, 85),
+    ("DISK_USAGE", "UAT", "lswtlmap3u", "/opt", 75, 90),
+    ("DISK_USAGE", "UAT", "lswtlmap3u", "/var", 70, 85),
+    # ── PROD: lmwtlmap1p ────────────────────────────────────────────────────
+    ("DISK_USAGE", "PROD", "lmwtlmap1p", "/",    75, 90),
+    ("DISK_USAGE", "PROD", "lmwtlmap1p", "/opt", 80, 92),
+    ("DISK_USAGE", "PROD", "lmwtlmap1p", "/var", 75, 90),
+    # ── PROD: lmwtlmap2p ────────────────────────────────────────────────────
+    ("DISK_USAGE", "PROD", "lmwtlmap2p", "/",    75, 90),
+    ("DISK_USAGE", "PROD", "lmwtlmap2p", "/opt", 80, 92),
+    ("DISK_USAGE", "PROD", "lmwtlmap2p", "/var", 75, 90),
+    # ── PROD: lmwtlmap5p ────────────────────────────────────────────────────
+    ("DISK_USAGE", "PROD", "lmwtlmap5p", "/",    75, 90),
+    ("DISK_USAGE", "PROD", "lmwtlmap5p", "/opt", 80, 92),
+    ("DISK_USAGE", "PROD", "lmwtlmap5p", "/var", 75, 90),
+    # ── PROD: lmwtlmap6p ────────────────────────────────────────────────────
+    ("DISK_USAGE", "PROD", "lmwtlmap6p", "/",    75, 90),
+    ("DISK_USAGE", "PROD", "lmwtlmap6p", "/opt", 80, 92),
+    ("DISK_USAGE", "PROD", "lmwtlmap6p", "/var", 75, 90),
+]
+
+# Clear existing server/path overrides then re-insert from the list above.
+# Global env-level defaults (hostname='') are left untouched.
+cur.execute("DELETE FROM config WHERE hostname <> ''")
+for mt, env, hn, lbl, warn, crit in SERVER_PATH_THRESHOLDS:
+    cur.execute(
+        """
+        INSERT OR REPLACE INTO config
+            (metric_type, environment, hostname, path_label,
+             warning_threshold, critical_threshold)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (mt, env, hn, lbl, warn, crit),
+    )
+    print(f"  Config override: [{env}] {hn}  {mt}[{lbl}]  warn={warn}  crit={crit}")
+con.commit()
+print(f"\nInserted {len(SERVER_PATH_THRESHOLDS)} server/path threshold overrides.")
 
 con.close()
 print("\n✅  Seed complete. Restart the backend and refresh the dashboard.")

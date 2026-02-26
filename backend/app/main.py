@@ -52,7 +52,12 @@ def _bootstrap_schema(con: oracledb.Connection) -> None:
             con.commit()
         except oracledb.DatabaseError as exc:
             (error,) = exc.args
-            if error.code in (955, 1):  # 955=already exists, 1=unique constraint
+            if error.code in (955, 1, 1430, 2443, 2441):
+                # 955  = name already used by existing object
+                # 1    = unique constraint violated (seed INSERT)
+                # 1430 = column being added already exists in table
+                # 2443 = cannot drop constraint — nonexistent
+                # 2441 = constraint already exists
                 pass
             else:
                 logger.warning("DDL warning (code %d): %s", error.code, error.message)

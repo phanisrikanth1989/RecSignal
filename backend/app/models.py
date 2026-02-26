@@ -156,8 +156,18 @@ class AlertAcknowledge(BaseModel):
 class ThresholdConfig(BaseModel):
     metric_type: MetricType
     environment: Environment
-    warning_threshold: float = Field(..., ge=0, le=100)
-    critical_threshold: float = Field(..., ge=0, le=100)
+    hostname: str = Field(
+        '',
+        max_length=255,
+        description="Specific server hostname; leave empty to apply to all servers in this environment",
+    )
+    path_label: str = Field(
+        '',
+        max_length=255,
+        description="Specific mount point / tablespace / label; leave empty to apply to all paths",
+    )
+    warning_threshold: float = Field(..., ge=0)
+    critical_threshold: float = Field(..., ge=0)
 
 
 class ThresholdConfigResponse(ThresholdConfig):
@@ -231,13 +241,22 @@ DDL_STATEMENTS = [
     """
     CREATE TABLE config (
         id                  NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        metric_type         VARCHAR2(50) NOT NULL,
-        environment         VARCHAR2(10) NOT NULL CHECK (environment IN ('DEV','UAT','PROD')),
-        warning_threshold   NUMBER(6,2)  NOT NULL,
-        critical_threshold  NUMBER(6,2)  NOT NULL,
-        CONSTRAINT uq_config_metric_env UNIQUE (metric_type, environment)
+        metric_type         VARCHAR2(50)  NOT NULL,
+        environment         VARCHAR2(10)  NOT NULL CHECK (environment IN ('DEV','UAT','PROD')),
+        hostname            VARCHAR2(255) DEFAULT '' NOT NULL,
+        path_label          VARCHAR2(255) DEFAULT '' NOT NULL,
+        warning_threshold   NUMBER(6,2)   NOT NULL,
+        critical_threshold  NUMBER(6,2)   NOT NULL,
+        CONSTRAINT uq_config_path UNIQUE (metric_type, environment, hostname, path_label)
     )
     """,
+    # ── Migration: add hostname / path_label to existing config tables ──────
+    # ORA-01430 (column already exists) and ORA-02443 (constraint not found)
+    # are silently ignored by _bootstrap_schema so these are safe to re-run.
+    "ALTER TABLE config ADD (hostname VARCHAR2(255) DEFAULT '' NOT NULL)",
+    "ALTER TABLE config ADD (path_label VARCHAR2(255) DEFAULT '' NOT NULL)",
+    "ALTER TABLE config DROP CONSTRAINT uq_config_metric_env",
+    "ALTER TABLE config ADD CONSTRAINT uq_config_path UNIQUE (metric_type, environment, hostname, path_label)",
     # seed sensible defaults
     """
     INSERT INTO config (metric_type, environment, warning_threshold, critical_threshold)

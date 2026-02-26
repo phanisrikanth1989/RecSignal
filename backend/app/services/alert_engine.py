@@ -45,10 +45,11 @@ class AlertEngine:
     environment : DEV | UAT | PROD — used to look up the correct threshold.
     """
 
-    def __init__(self, cursor: oracledb.Cursor, server_id: int, environment: str) -> None:
+    def __init__(self, cursor: oracledb.Cursor, server_id: int, environment: str, hostname: str = '') -> None:
         self._cursor = cursor
         self._server_id = server_id
         self._environment = environment
+        self._hostname = hostname or ''
         self._threshold_cache: dict[str, Threshold | None] = {}
 
     # ------------------------------------------------------------------
@@ -67,7 +68,7 @@ class AlertEngine:
         Returns True  if a new alert was created.
         Returns False if no alert action was taken (OK or duplicate suppressed).
         """
-        threshold = self._get_threshold(metric_type)
+        threshold = self._get_threshold(metric_type, label)
         if threshold is None:
             # No config defined — skip silently
             return False
@@ -125,16 +126,33 @@ class AlertEngine:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _get_threshold(self, metric_type: str) -> Optional[Threshold]:
-        cache_key = f"{metric_type}:{self._environment}"
+    def _get_threshold(self, metric_type: str, label: Optional[str] = None) -> Optional[Threshold]:
+        """
+        Look up the most-specific threshold for this metric + value label.
+
+        Priority (highest wins):
+          1. hostname + path_label  — per-server, per-path
+          2. hostname only          — per-server, any path
+          3. environment global     — any server, any path
+        """
+        lbl = label or ''
+        hn  = self._hostname
+        cache_key = f"{metric_type}:{hn}:{lbl}"
         if cache_key not in self._threshold_cache:
             self._cursor.execute(
                 """
                 SELECT warning_threshold, critical_threshold
                 FROM   config
-                WHERE  metric_type = :mt AND environment = :env
+                WHERE  metric_type = :mt
+                  AND  environment  = :env
+                  AND  hostname    IN (:hn, '')
+                  AND  path_label  IN (:lbl, '')
+                ORDER BY
+                    CASE WHEN hostname   = :hn  AND hostname   <> '' THEN 0 ELSE 1 END +
+                    CASE WHEN path_label = :lbl AND path_label <> '' THEN 0 ELSE 1 END
+                FETCH FIRST 1 ROWS ONLY
                 """,
-                {"mt": metric_type, "env": self._environment},
+                {"mt": metric_type, "env": self._environment, "hn": hn, "lbl": lbl},
             )
             row = self._cursor.fetchone()
             self._threshold_cache[cache_key] = (
